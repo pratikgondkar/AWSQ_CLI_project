@@ -62,13 +62,14 @@ pipeline {
             }
         }
 
-        stage('Login to Amazon Q') {
+         stage('Manual Login to Q') {
             steps {
-                script {
-                    sh '''
-                        docker exec -it my-container q login
-                    '''
-                }
+                echo '''
+                    Go to your server and run:
+                    docker exec -it my-container q login
+
+                    Open the URL shown and enter the code to authorize.
+                '''
             }
         }
     }
