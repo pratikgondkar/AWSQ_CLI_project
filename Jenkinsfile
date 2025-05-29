@@ -23,8 +23,7 @@ pipeline {
                 script {
                     sh 'rm -f output.*'
                     sh '''
-                    docker run --rm -v $PWD:/workspace ${IMAGE_NAME} \
-                        q /workspace/diagram.mcp
+                    docker run --rm -v ${WORKSPACE}:/workspace awsq-cli amazon-q diagram /workspace/diagram.mcp
                     '''
                 }
             }
