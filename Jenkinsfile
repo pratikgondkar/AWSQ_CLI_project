@@ -38,7 +38,8 @@ pipeline {
                     } else {
                         echo "🚀 Starting new container '${CONTAINER_NAME}'..."
                         sh """
-                            docker run -d --name ${CONTAINER_NAME} \\
+                            docker run -d --name ${CONTAINER_NAME} \
+                            -p 8000:8000 \
                             --entrypoint /bin/bash ${IMAGE_NAME}
                         """
                         sleep 2
