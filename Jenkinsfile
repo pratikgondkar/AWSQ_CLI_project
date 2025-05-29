@@ -2,36 +2,57 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'awsq-cli'
+        IMAGE_NAME = 'amazon-q-cli'
+        CONTAINER_NAME = 'amazon-q-cli-container'
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t ${IMAGE_NAME} .'
-            }
-        }
-
-        stage('Run Amazon Q CLI') {
+        stage('Check Existing Docker Image') {
             steps {
                 script {
-                    sh 'rm -f output.*'
-                    sh '''
-                    docker run --rm -v ${WORKSPACE}:/workspace awsq-cli amazon-q diagram /workspace/diagram.mcp
-                    '''
+                    def imageExists = sh(
+                        script: "docker images -q ${IMAGE_NAME}",
+                        returnStdout: true
+                    ).trim()
+
+                    if (imageExists) {
+                        echo "✅ Docker image '${IMAGE_NAME}' already exists. Skipping build."
+                    } else {
+                        echo "🔨 Docker image not found. Building now..."
+                        sh "docker build -t ${IMAGE_NAME} ."
+                    }
                 }
             }
         }
 
-        stage('Archive Artifacts') {
+        stage('Check and Run Container') {
             steps {
-                archiveArtifacts artifacts: 'output.*', fingerprint: true
+                script {
+                    def containerRunning = sh(
+                        script: "docker ps --filter 'name=${CONTAINER_NAME}' --format '{{.Names}}'",
+                        returnStdout: true
+                    ).trim()
+
+                    if (containerRunning == CONTAINER_NAME) {
+                        echo "✅ Container '${CONTAINER_NAME}' is already running. Skipping run."
+                    } else {
+                        echo "🚀 Starting new container '${CONTAINER_NAME}'..."
+                        sh """
+                            docker run -d --name ${CONTAINER_NAME} \\
+                            --entrypoint /bin/bash ${IMAGE_NAME}
+                        """
+                        sleep 2
+                        def running = sh(
+                            script: "docker ps --filter 'name=${CONTAINER_NAME}' --format '{{.Names}}'",
+                            returnStdout: true
+                        ).trim()
+                        if (running == CONTAINER_NAME) {
+                            echo "🎉 Container '${CONTAINER_NAME}' is running successfully!"
+                        } else {
+                            error("❌ Container failed to start.")
+                        }
+                    }
+                }
             }
         }
     }
