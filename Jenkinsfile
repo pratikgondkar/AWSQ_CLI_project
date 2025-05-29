@@ -61,5 +61,15 @@ pipeline {
                 sh 'docker ps -a'
             }
         }
+
+        stage('Login to Amazon Q') {
+            steps {
+                script {
+                    sh '''
+                        docker exec -it my-container q login
+                    '''
+                }
+            }
+        }
     }
 }
