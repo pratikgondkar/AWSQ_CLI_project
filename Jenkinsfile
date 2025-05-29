@@ -35,7 +35,6 @@ pipeline {
                     if (containerExists) {
                         echo "Container '${CONTAINER_NAME}' already exists. Skipping creation."
 
-                        // Check if container is running
                         def isRunning = sh(
                             script: "docker ps --format '{{.Names}}' | grep -w ${CONTAINER_NAME} || true",
                             returnStdout: true
@@ -48,9 +47,25 @@ pipeline {
                             echo "Container '${CONTAINER_NAME}' is already running."
                         }
                     } else {
-                        sh "docker run -d -p 8000:8000 --name ${CONTAINER_NAME} ${IMAGE_NAME}"
+                        sh "docker run -d --name ${CONTAINER_NAME} -p 8000:8000 ${IMAGE_NAME}"
                         echo "Created and started new container '${CONTAINER_NAME}'."
                     }
+                }
+            }
+        }
+
+        stage('Q CLI Login') {
+            steps {
+                script {
+                    echo "Starting Q CLI login process. Follow the URL and enter the code shown below to authorize."
+
+                    // Run q login command inside container and capture output (with timeout so Jenkins doesn't hang forever)
+                    def loginOutput = sh(
+                        script: "timeout 300 docker exec -it ${CONTAINER_NAME} q login || true",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Q Login Output:\n${loginOutput}"
                 }
             }
         }
@@ -59,17 +74,6 @@ pipeline {
             steps {
                 sh 'docker images'
                 sh 'docker ps -a'
-            }
-        }
-
-         stage('Manual Login to Q') {
-            steps {
-                echo '''
-                    Go to your server and run:
-                    docker exec -it my-container q login
-
-                    Open the URL shown and enter the code to authorize.
-                '''
             }
         }
     }
