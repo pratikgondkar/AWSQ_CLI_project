@@ -7,51 +7,40 @@ pipeline {
     }
 
     stages {
-        stage('Check Existing Docker Image') {
+        stage('Build Image If Needed') {
             steps {
                 script {
-                    def imageExists = sh(
-                        script: "docker images -q ${IMAGE_NAME}",
-                        returnStdout: true
-                    ).trim()
-
-                    if (imageExists) {
-                        echo "✅ Docker image '${IMAGE_NAME}' already exists. Skipping build."
-                    } else {
-                        echo "🔨 Docker image not found. Building now..."
+                    def image = sh(script: "docker images -q ${IMAGE_NAME}", returnStdout: true).trim()
+                    if (!image) {
+                        echo "🔨 Image not found. Building..."
                         sh "docker build -t ${IMAGE_NAME} ."
+                    } else {
+                        echo "✅ Image '${IMAGE_NAME}' already exists."
                     }
                 }
             }
         }
 
-        stage('Check and Run Container') {
+        stage('Run Container If Not Running') {
             steps {
                 script {
-                    def containerRunning = sh(
-                        script: "docker ps --filter 'name=${CONTAINER_NAME}' --format '{{.Names}}'",
-                        returnStdout: true
-                    ).trim()
-
-                    if (containerRunning == CONTAINER_NAME) {
-                        echo "✅ Container '${CONTAINER_NAME}' is already running. Skipping run."
-                    } else {
-                        echo "🚀 Starting new container '${CONTAINER_NAME}'..."
+                    def isRunning = sh(script: "docker ps --filter 'name=^/${CONTAINER_NAME}$' --format '{{.Names}}'", returnStdout: true).trim()
+                    if (!isRunning) {
+                        echo "🚀 Starting container '${CONTAINER_NAME}'..."
                         sh """
-                            docker run -d --name ${CONTAINER_NAME} \
-                            -p 8000:8000 \
+                            docker run -d --name ${CONTAINER_NAME} \\
+                            -p 8000:8000 \\
                             --entrypoint /bin/bash ${IMAGE_NAME}
                         """
                         sleep 2
-                        def running = sh(
-                            script: "docker ps --filter 'name=${CONTAINER_NAME}' --format '{{.Names}}'",
-                            returnStdout: true
-                        ).trim()
+                        def running = sh(script: "docker ps --filter 'name=^/${CONTAINER_NAME}$' --format '{{.Names}}'", returnStdout: true).trim()
                         if (running == CONTAINER_NAME) {
                             echo "🎉 Container '${CONTAINER_NAME}' is running successfully!"
                         } else {
-                            error("❌ Container failed to start.")
+                            error "❌ Failed to start container."
                         }
+                    } else {
+                        echo "✅ Container '${CONTAINER_NAME}' is already running."
                     }
                 }
             }
