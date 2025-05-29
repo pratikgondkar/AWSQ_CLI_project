@@ -12,9 +12,9 @@ pipeline {
             }
         }
 
-        stage('Run Container with Bash') {
+        stage('Run Container') {
             steps {
-                sh 'docker run -it --entrypoint /bin/bash ${IMAGE_NAME}'
+                sh 'docker run --rm ${IMAGE_NAME} echo "Container started successfully"'
             }
         }
     }
