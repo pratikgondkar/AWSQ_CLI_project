@@ -35,7 +35,7 @@ pipeline {
                     if (containerExists) {
                         echo "Container '${CONTAINER_NAME}' already exists. Skipping creation."
                     } else {
-                        sh "docker create --name ${CONTAINER_NAME} ${IMAGE_NAME}"
+                        sh "docker create -p 8000:8000 --name ${CONTAINER_NAME} ${IMAGE_NAME}"
                     }
                 }
             }
