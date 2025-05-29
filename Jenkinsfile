@@ -12,9 +12,9 @@ pipeline {
             }
         }
 
-        stage('Run Container') {
+        stage('Create Docker Container') {
             steps {
-                sh 'docker run --rm ${IMAGE_NAME} echo "Container started successfully"'
+                sh 'docker create --name my-container ${IMAGE_NAME}'
             }
         }
     }
